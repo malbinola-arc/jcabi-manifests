@@ -27,20 +27,41 @@
  * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED
  * OF THE POSSIBILITY OF SUCH DAMAGE.
  */
+package com.jcabi.manifests;
+
+import java.io.ByteArrayInputStream;
+import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
+import java.util.Collection;
+import java.util.Collections;
 
 /**
- * Static reader of {@code META-INF/MANIFEST.MF} files.
+ * Manifests in a UTF-8 string.
  *
- * <p>The only dependency you need is (check our latest version available
- * at <a href="http://www.jcabi.com">www.jcabi.com</a>):
+ * <p>The class is immutable and thread-safe.
  *
- * <pre>&lt;dependency&gt;
- *   &lt;groupId&gt;com.jcabi&lt;/groupId&gt;
- *   &lt;artifactId&gt;jcabi-manifests&lt;/artifactId&gt;
- * &lt;/dependency&gt;</pre>
- *
- * @since 0.7
- * @link <a href="http://www.jcabi.com/jcabi-manifests/index.html">project website</a>
- * @link <a href="http://www.yegor256.com/2014/07/03/how-to-read-manifest-mf.html">How to Read MANIFEST.MF Files</a>
+ * @since 1.3
  */
-package com.jcabi.manifests;
+public final class StringMfs implements Mfs {
+
+    /**
+     * The string.
+     */
+    private final transient String source;
+
+    /**
+     * Ctor.
+     * @param src The source
+     */
+    public StringMfs(final String src) {
+        this.source = src;
+    }
+
+    @Override
+    public Collection<InputStream> fetch() {
+        return Collections.singleton(
+            new ByteArrayInputStream(this.source.getBytes(StandardCharsets.UTF_8))
+        );
+    }
+
+}

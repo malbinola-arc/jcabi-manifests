@@ -1,5 +1,5 @@
-/**
- * Copyright (c) 2012-2017, jcabi.com
+/*
+ * Copyright (c) 2012-2025, jcabi.com
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -30,7 +30,6 @@
 package com.jcabi.manifests;
 
 import com.jcabi.log.Logger;
-import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Collection;
@@ -44,7 +43,6 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.jar.Attributes;
 import java.util.jar.Manifest;
-import javax.servlet.ServletContext;
 
 /**
  * Static reader of {@code META-INF/MANIFEST.MF} files.
@@ -77,12 +75,12 @@ import javax.servlet.ServletContext;
  * these attributes where it's necessary (in one of your JAXB annotated objects,
  * for example) and show to users:
  *
- * <pre> import com.jcabi.manifests.Manifest;
+ * <pre>  import com.jcabi.manifests.Manifest;
  * import java.text.SimpleDateFormat;
  * import java.util.Date;
  * import java.util.Locale;
- * import javax.xml.bind.annotation.XmlElement;
- * import javax.xml.bind.annotation.XmlRootElement;
+ * import jakarta.xml.bind.annotation.XmlElement;
+ * import jakarta.xml.bind.annotation.XmlRootElement;
  * &#64;XmlRootElement
  * public final class Page {
  *   &#64;XmlElement
@@ -100,11 +98,11 @@ import javax.servlet.ServletContext;
  * <p>If you want to add more manifests to the collection, use
  * its static instance:
  *
- * <pre>Manifests.DEFAULT.append(new FilesMfs(new File("MANIFEST.MF")));</pre>
+ * <pre>Manifests.singleton().append(new FilesMfs(new File("MANIFEST.MF")));</pre>
  *
  * <p>You can also modify the map directly:
  *
- * <pre>Manifests.DEFAULT.put("Hello", "world");</pre>
+ * <pre>Manifests.singleton().put("Hello", "world");</pre>
  *
  * <p>The only dependency you need (check the latest version at
  * <a href="http://manifests.jcabi.com/">jcabi-manifests</a>):
@@ -114,22 +112,20 @@ import javax.servlet.ServletContext;
  *  &lt;artifactId>jcabi-manifests&lt;/artifactId>
  * &lt;/dependency></pre>
  *
- * @author Yegor Bugayenko (yegor@tpc2.com)
- * @version $Id$
  * @since 0.7
- * @see <a href="http://download.oracle.com/javase/1,5.0/docs/guide/jar/jar.html#JAR%20Manifest">JAR Manifest</a>
- * @see <a href="http://maven.apache.org/shared/maven-archiver/index.html">Maven Archiver</a>
- * @see <a href="http://manifests.jcabi.com/index.html">manifests.jcabi.com</a>
- * @see <a href="http://www.yegor256.com/2014/07/03/how-to-read-manifest-mf.html">How to Read MANIFEST.MF Files</a>
+ * @link <a href="http://download.oracle.com/javase/1.5.0/docs/guide/jar/jar.html#JAR%20Manifest">JAR Manifest</a>
+ * @link <a href="http://maven.apache.org/shared/maven-archiver/index.html">Maven Archiver</a>
+ * @link <a href="http://manifests.jcabi.com/index.html">manifests.jcabi.com</a>
+ * @link <a href="http://www.yegor256.com/2014/07/03/how-to-read-manifest-mf.html">How to Read MANIFEST.MF Files</a>
  */
-@SuppressWarnings("PMD.TooManyMethods")
+@SuppressWarnings({"PMD.TooManyMethods", "PMD.ProhibitPublicStaticMethods"})
 public final class Manifests implements MfMap {
 
     /**
      * Default singleton.
      */
     private static final AtomicReference<MfMap> DEFAULT =
-        new AtomicReference<MfMap>(new Manifests());
+        new AtomicReference<>(new Manifests());
 
     /**
      * Attributes retrieved.
@@ -138,16 +134,9 @@ public final class Manifests implements MfMap {
 
     static {
         try {
-            final MfMap currentInstance = Manifests.DEFAULT.get();
-            Manifests.DEFAULT.compareAndSet(
-                currentInstance,
-                currentInstance.append(new ClasspathMfs())
-            );
+            Manifests.singleton().append(new ClasspathMfs());
         } catch (final IOException ex) {
-            Logger.error(
-                Manifests.class,
-                "#load(): '%s' failed %[exception]s", ex
-            );
+            Manifests.logLoadFailedError(ex);
         }
     }
 
@@ -156,7 +145,7 @@ public final class Manifests implements MfMap {
      * @since 1.0
      */
     public Manifests() {
-        this(new HashMap<String, String>(0));
+        this(new HashMap<>(0));
     }
 
     /**
@@ -166,7 +155,17 @@ public final class Manifests implements MfMap {
      */
     public Manifests(final Map<String, String> attrs) {
         super();
-        this.attributes = new ConcurrentHashMap<String, String>(attrs);
+        this.attributes = new ConcurrentHashMap<>(attrs);
+    }
+
+    /**
+     * Get the singleton.
+     *
+     * @return The singleton
+     * @since 2.0.0
+     */
+    public static MfMap singleton() {
+        return Manifests.DEFAULT.get();
     }
 
     @Override
@@ -196,29 +195,28 @@ public final class Manifests implements MfMap {
 
     @Override
     public Map<String, String> getAsMap() {
-        return new HashMap<String, String>(this.attributes);
+        return new HashMap<>(this.attributes);
     }
 
     @Override
     public Set<String> keySet() {
-        return new HashSet<String>(this.attributes.keySet());
+        return new HashSet<>(this.attributes.keySet());
     }
 
     @Override
-    public MfMap append(final Mfs streams) throws IOException {
-        final ConcurrentHashMap<String, String> joinedAttributes =
-            new ConcurrentHashMap<String, String>(this.attributes);
+    @SuppressWarnings("PMD.GuardLogStatement")
+    public void append(final Mfs mfs) throws IOException {
         final long start = System.currentTimeMillis();
-        final Collection<InputStream> list = streams.fetch();
+        final Collection<InputStream> list = mfs.fetch();
         int saved = 0;
         int ignored = 0;
         for (final InputStream stream : list) {
             for (final Map.Entry<String, String> attr
                 : Manifests.load(stream).entrySet()) {
-                if (joinedAttributes.containsKey(attr.getKey())) {
+                if (this.attributes.containsKey(attr.getKey())) {
                     ++ignored;
                 } else {
-                    joinedAttributes.put(attr.getKey(), attr.getValue());
+                    this.attributes.put(attr.getKey(), attr.getValue());
                     ++saved;
                 }
             }
@@ -230,9 +228,8 @@ public final class Manifests implements MfMap {
             this.attributes.size(), list.size(),
             System.currentTimeMillis() - start,
             saved, ignored,
-            new TreeSet<String>(this.attributes.keySet())
+            new TreeSet<>(this.attributes.keySet())
         );
-        return new Manifests(joinedAttributes);
     }
 
     /**
@@ -260,12 +257,12 @@ public final class Manifests implements MfMap {
                     // @checkstyle LineLength (1 line)
                     "Attribute '%s' not found in MANIFEST.MF file(s) among %d other attribute(s): %[list]s",
                     name,
-                    Manifests.DEFAULT.get().size(),
-                    new TreeSet<String>(Manifests.DEFAULT.get().keySet())
+                    Manifests.singleton().size(),
+                    new TreeSet<>(Manifests.singleton().keySet())
                 )
             );
         }
-        return Manifests.DEFAULT.get().get(name);
+        return Manifests.singleton().get(name);
     }
 
     /**
@@ -286,75 +283,7 @@ public final class Manifests implements MfMap {
         if (name.isEmpty()) {
             throw new IllegalArgumentException("attribute name can't be empty");
         }
-        return Manifests.DEFAULT.get().containsKey(name);
-    }
-
-    /**
-     * Append attributes from the web application {@code MANIFEST.MF}.
-     *
-     * <p>The method is deprecated. Instead, use this code:
-     *
-     * <pre>Manifests.DEFAULT.append(new ServletMfs());</pre>
-     *
-     * @param ctx Servlet context
-     * @see #Manifests()
-     * @throws IOException If some I/O problem inside
-     * @deprecated Use {@link #append(Mfs)} and {@link ServletMfs} instead
-     */
-    @Deprecated
-    public static void append(final ServletContext ctx) throws IOException {
-        final MfMap currentInstance = Manifests.DEFAULT.get();
-        Manifests.DEFAULT.compareAndSet(
-            currentInstance,
-            currentInstance.append(new ServletMfs(ctx))
-        );
-    }
-
-    /**
-     * Append attributes from the file.
-     *
-     * <p>The method is deprecated. Instead, use this code:
-     *
-     * <pre>Manifests.DEFAULT.append(new FilesMfs(file));</pre>
-     *
-     * @param file The file to load attributes from
-     * @throws IOException If some I/O problem inside
-     * @deprecated Use {@link #append(Mfs)} and {@link FilesMfs} instead
-     */
-    @Deprecated
-    public static void append(final File file) throws IOException {
-        if (file == null) {
-            throw new IllegalArgumentException("file can't be NULL");
-        }
-        final MfMap currentInstance = Manifests.DEFAULT.get();
-        Manifests.DEFAULT.compareAndSet(
-            currentInstance,
-            currentInstance.append(new FilesMfs(file))
-        );
-    }
-
-    /**
-     * Append attributes from input stream.
-     *
-     * <p>The method is deprecated. Instead, use this code:
-     *
-     * <pre>Manifests.DEFAULT.append(new StreamsMfs(stream));</pre>
-     *
-     * @param stream Stream to use
-     * @throws IOException If some I/O problem inside
-     * @since 0.8
-     * @deprecated Use {@link #append(Mfs)} and {@link StreamsMfs} instead
-     */
-    @Deprecated
-    public static void append(final InputStream stream) throws IOException {
-        if (stream == null) {
-            throw new IllegalArgumentException("input stream can't be NULL");
-        }
-        final MfMap currentInstance = Manifests.DEFAULT.get();
-        Manifests.DEFAULT.compareAndSet(
-            currentInstance,
-            currentInstance.append(new StreamsMfs(stream))
-        );
+        return Manifests.singleton().containsKey(name);
     }
 
     /**
@@ -376,7 +305,7 @@ public final class Manifests implements MfMap {
     private static Map<String, String> load(final InputStream stream)
         throws IOException {
         final ConcurrentMap<String, String> props =
-            new ConcurrentHashMap<String, String>(0);
+            new ConcurrentHashMap<>(0);
         try {
             final Manifest manifest = new Manifest(stream);
             final Attributes attrs = manifest.getMainAttributes();
@@ -389,14 +318,23 @@ public final class Manifests implements MfMap {
             Logger.debug(
                 Manifests.class,
                 "%d attribute(s) loaded %[list]s",
-                props.size(), new TreeSet<String>(props.keySet())
+                props.size(), new TreeSet<>(props.keySet())
             );
         // @checkstyle IllegalCatch (1 line)
         } catch (final RuntimeException ex) {
-            Logger.error(Manifests.class, "#load(): failed %[exception]s", ex);
+            Manifests.logLoadFailedError(ex);
         } finally {
             stream.close();
         }
         return props;
+    }
+
+    /**
+     * Report the exception that was just thrown.
+     *
+     * @param exn The exception to report
+     */
+    private static void logLoadFailedError(final Exception exn) {
+        Logger.error(Manifests.class, "#load(): failed %[exception]s", exn);
     }
 }

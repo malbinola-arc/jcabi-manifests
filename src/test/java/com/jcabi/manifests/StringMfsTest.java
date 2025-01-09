@@ -27,20 +27,30 @@
  * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED
  * OF THE POSSIBILITY OF SUCH DAMAGE.
  */
+package com.jcabi.manifests;
+
+import java.io.IOException;
+import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
+import org.apache.commons.io.IOUtils;
+import org.hamcrest.MatcherAssert;
+import org.hamcrest.Matchers;
+import org.junit.jupiter.api.Test;
 
 /**
- * Static reader of {@code META-INF/MANIFEST.MF} files.
+ * Test case for {@link StringMfs}.
  *
- * <p>The only dependency you need is (check our latest version available
- * at <a href="http://www.jcabi.com">www.jcabi.com</a>):
- *
- * <pre>&lt;dependency&gt;
- *   &lt;groupId&gt;com.jcabi&lt;/groupId&gt;
- *   &lt;artifactId&gt;jcabi-manifests&lt;/artifactId&gt;
- * &lt;/dependency&gt;</pre>
- *
- * @since 0.7
- * @link <a href="http://www.jcabi.com/jcabi-manifests/index.html">project website</a>
- * @link <a href="http://www.yegor256.com/2014/07/03/how-to-read-manifest-mf.html">How to Read MANIFEST.MF Files</a>
+ * @since 2.0.0
  */
-package com.jcabi.manifests;
+final class StringMfsTest {
+
+    @Test
+    void turnsStringIntoMfs() throws IOException {
+        final InputStream input = new StringMfs("Foo: bar").fetch().iterator().next();
+        MatcherAssert.assertThat(
+            IOUtils.toString(input, StandardCharsets.UTF_8),
+            Matchers.containsString("Foo:")
+        );
+    }
+
+}

@@ -27,20 +27,57 @@
  * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED
  * OF THE POSSIBILITY OF SUCH DAMAGE.
  */
+package com.jcabi.manifests;
+
+import com.jcabi.log.Logger;
+import jakarta.servlet.ServletContext;
+import java.io.IOException;
+import java.io.InputStream;
+import java.net.URL;
+import java.util.ArrayList;
+import java.util.Collection;
 
 /**
- * Static reader of {@code META-INF/MANIFEST.MF} files.
+ * Manifests in servlet context.
  *
- * <p>The only dependency you need is (check our latest version available
- * at <a href="http://www.jcabi.com">www.jcabi.com</a>):
+ * Append attributes from the web application {@code MANIFEST.MF}.
  *
- * <pre>&lt;dependency&gt;
- *   &lt;groupId&gt;com.jcabi&lt;/groupId&gt;
- *   &lt;artifactId&gt;jcabi-manifests&lt;/artifactId&gt;
- * &lt;/dependency&gt;</pre>
+ * <p>You can use this class in your own
+ * {@link jakarta.servlet.Filter} or
+ * {@link jakarta.servlet.ServletContextListener},
+ * in order to inject {@code MANIFEST.MF} attributes to the class:
  *
- * @since 0.7
- * @link <a href="http://www.jcabi.com/jcabi-manifests/index.html">project website</a>
- * @link <a href="http://www.yegor256.com/2014/07/03/how-to-read-manifest-mf.html">How to Read MANIFEST.MF Files</a>
+ * <pre> Manifests.append(new ServletMfs(context));</pre>
+ *
+ * <p>The class is thread-safe.
+ *
+ * @since 1.0
  */
-package com.jcabi.manifests;
+public final class JakartaServletMfs implements Mfs {
+
+    /**
+     * Servlet context.
+     */
+    private final transient ServletContext ctx;
+
+    /**
+     * Ctor.
+     * @param context Context
+     */
+    public JakartaServletMfs(final ServletContext context) {
+        this.ctx = context;
+    }
+
+    @Override
+    public Collection<InputStream> fetch() throws IOException {
+        final URL main = this.ctx.getResource("/META-INF/MANIFEST.MF");
+        final Collection<InputStream> streams = new ArrayList<>(1);
+        if (main == null) {
+            Logger.warn(this, "MANIFEST.MF not found in WAR package");
+        } else {
+            streams.add(main.openStream());
+        }
+        return streams;
+    }
+
+}
